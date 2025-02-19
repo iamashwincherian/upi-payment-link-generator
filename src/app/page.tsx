@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -12,9 +14,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Copy, Download } from "lucide-react";
-import Image from "next/image";
 import { QRCodeCanvas } from "qrcode.react";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -31,14 +33,15 @@ export default function HomePage() {
   const [link, setLink] = useState<string | null>(null);
   const [qrImgSrc, setQrImgSrc] = useState<string | null>(null);
   const qrRef = useRef<HTMLCanvasElement | null>(null);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      upiId: "someone@okaxis",
+      upiId: "",
       senderName: "",
       message: "",
-      amount: "399",
+      amount: "",
     },
   });
 
@@ -57,6 +60,9 @@ export default function HomePage() {
       link.href = dataUrl;
       link.download = "payment-qr.png";
       link.click();
+      toast({
+        description: "Payment QR Code has been downloaded!",
+      });
     }
   };
 
@@ -77,8 +83,10 @@ export default function HomePage() {
 
   const copyLink = () => {
     if (link) {
-      navigator.clipboard.writeText(link).then(() => {
-        alert("Text copied!");
+      navigator?.clipboard?.writeText(link).then(() => {
+        toast({
+          description: "Payment link has been copied to your clipboard!",
+        });
       });
     }
   };
@@ -206,10 +214,8 @@ export default function HomePage() {
               className="hidden"
             />
             {qrImgSrc && (
-              <Image
-                className="border rounded"
-                height={300}
-                width={300}
+              <img
+                className="border rounded w-full"
                 src={qrImgSrc}
                 alt="QR Code"
               />
