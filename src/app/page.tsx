@@ -1,101 +1,222 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Copy, Download } from "lucide-react";
 import Image from "next/image";
+import { QRCodeCanvas } from "qrcode.react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
-export default function Home() {
+const formSchema = z.object({
+  upiId: z.string().nonempty(),
+  senderName: z.string().optional(),
+  message: z.string().optional(),
+  amount: z.string().optional(),
+});
+
+export default function HomePage() {
+  const [link, setLink] = useState<string | null>(null);
+  const [qrImgSrc, setQrImgSrc] = useState<string | null>(null);
+  const qrRef = useRef<HTMLCanvasElement | null>(null);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      upiId: "someone@okaxis",
+      senderName: "",
+      message: "",
+      amount: "399",
+    },
+  });
+
+  useEffect(() => {
+    const canvas = qrRef?.current;
+    if (canvas) {
+      setQrImgSrc(canvas.toDataURL("image/png"));
+    }
+  }, [link]);
+
+  const downloadQRCode = () => {
+    const canvas = qrRef?.current;
+    if (canvas) {
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "payment-qr.png";
+      link.click();
+    }
+  };
+
+  const handleReset = () => {
+    setLink(null);
+    form.reset();
+  };
+
+  const toLowerCase = (e: ChangeEvent<HTMLInputElement>) =>
+    (e.target.value = e.target.value.toLowerCase());
+
+  const onSubmit = form.handleSubmit((values: z.infer<typeof formSchema>) => {
+    const { upiId, senderName, amount } = values;
+    setLink(
+      `upi://pay?pa=${upiId}&pn=${senderName}&mc=&tid=&tr=&tn=&am=${amount}&cu=INR`
+    );
+  });
+
+  const copyLink = () => {
+    if (link) {
+      navigator.clipboard.writeText(link).then(() => {
+        alert("Text copied!");
+      });
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <div className="flex flex-col m-4 w-[400px] items-center">
+      <p className="text-xl font-bold text-center">
+        UPI Payment Link Generator
+      </p>
+      <div className="mt-4 w-full">
+        <Form {...form}>
+          <form onSubmit={onSubmit}>
+            <FormField
+              control={form.control}
+              name="upiId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>UPI Id</FormLabel>
+                  <FormControl>
+                    <Input
+                      onInput={toLowerCase}
+                      placeholder="someone@okaxis"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription />
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            <FormField
+              control={form.control}
+              name="senderName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sender Name (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="What name should be displayed?"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="message"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Message (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="What is this payment for?" {...field} />
+                  </FormControl>
+                  <FormDescription />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="How much?"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex gap-4">
+              <Button
+                variant="outline"
+                type="reset"
+                className="mt-2 w-full"
+                onClick={handleReset}
+              >
+                Clear
+              </Button>
+              <Button type="submit" className="mt-2 w-full">
+                Create
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </div>
+      {link && (
+        <Card className="w-full mt-4">
+          <CardHeader>
+            <div className="flex gap-4 w-full">
+              <Button
+                variant="outline"
+                className="py-2 px-3 w-full"
+                onClick={copyLink}
+              >
+                Copy Link
+                <Copy />
+              </Button>
+              <Button
+                variant="outline"
+                className="py-2 px-3 w-full"
+                onClick={downloadQRCode}
+              >
+                Download QR
+                <Download />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <QRCodeCanvas
+              ref={qrRef}
+              size={300}
+              value={link}
+              marginSize={2}
+              className="hidden"
+            />
+            {qrImgSrc && (
+              <Image
+                className="border rounded"
+                height={300}
+                width={300}
+                src={qrImgSrc}
+                alt="QR Code"
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
